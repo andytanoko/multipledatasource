@@ -1,0 +1,10 @@
+
+*.iml
+/.gradle/
+/.idea/
+/.java-version
+/src/main/resources/application.yml
+/build/
+/out/
+/config/application.yml
+/gradle.properties

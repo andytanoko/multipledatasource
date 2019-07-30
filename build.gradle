@@ -1,0 +1,133 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.7.RELEASE"
+        classpath "io.spring.gradle:dependency-management-plugin:0.5.2.RELEASE"
+        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:latest.release'
+    }
+}
+
+group 'com.tampan'
+
+project.ext {
+    projectName = 'multisource'
+    projectVersion = '3.0.0-RELEASE'
+}
+
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'maven-publish'
+
+artifactory {
+    contextUrl = "${ARTIFACTORY_CONTEXTURL}"
+    publish {
+        repository {
+            repoKey = "gradle-${project.projectVersion.endsWith('-SNAPSHOT') ? 'dev' : 'release' }-local"
+            username = "${ARTIFACTORY_USER}"
+            password = "${ARTIFACTORY_PASSWORD}"
+            maven = true
+
+        }
+        defaults {
+            publications('mavenJava')
+            publishArtifacts = true
+        }
+    }
+    resolve {
+        repository {
+            repoKey = "gradle-${project.projectVersion.endsWith('-SNAPSHOT') ? 'dev' : 'release' }"
+            username = "${ARTIFACTORY_USER}"
+            password = "${ARTIFACTORY_PASSWORD}"
+            maven = true
+
+        }
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'com.tampan'
+            artifactId project.projectName
+            version project.projectVersion
+
+            from components.java
+            artifact (sourcesJar) { 
+                classifier = 'sources'
+            }
+        }
+    }
+}
+
+artifactoryPublish.dependsOn('build', 'sourcesJar')
+publish.dependsOn(artifactoryPublish)
+
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+jar {
+    baseName = project.projectName
+    version = project.projectVersion
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.cloud:spring-cloud-config:1.3.3.RELEASE'
+    }
+}
+
+dependencies {
+    // spring
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.cloud:spring-cloud-starter-config"
+    compile "org.springframework.cloud:spring-cloud-config-client"
+    compile "org.springframework.boot:spring-boot-starter-aop"
+    compile "org.springframework.boot:spring-boot-starter-data-jpa"
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    compile ('org.modelmapper:modelmapper:2.3.4')
+
+    // db
+    compile "org.postgresql:postgresql:42.1.4"
+    compile "org.flywaydb:flyway-core:4.2.0"
+
+    compile "org.hibernate:hibernate-java8:5.0.12.Final"
+
+    // swagger
+    compile "io.springfox:springfox-swagger2:2.5.0"
+    compile "io.springfox:springfox-swagger-ui:2.5.0"
+
+    // misc
+    compile "org.apache.commons:commons-collections4:4.1"
+    compile "org.apache.commons:commons-lang3:3.6"
+    compile "joda-time:joda-time:2.9.9"
+    compile "org.json:json:20171018"
+
+
+    compile "io.dropwizard.metrics:metrics-core:4.0.1"
+
+    //hikariCP
+    compile('com.zaxxer:HikariCP:2.6.1')
+
+    //test
+    testCompile "junit:junit"
+    testCompile "org.springframework:spring-test"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+}
